@@ -121,24 +121,19 @@ class WPGitHubUpdaterSetup {
 	 */
 	function admin_page() {
 		$this->maybe_authorize();		
-?>
+        ?>
 		<div class="wrap ghupdate-admin">
-
-			<div class="head-wrap">
-				<h2><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h2>
-			</div>
-
-			<div class="postbox-container primary">
-				<form method="post" id="ghupdate" action="options.php">
-    				<?php $this->validate(); ?>
-    				<?php $this->fields(); ?>
-    				do_settings_sections<br>
-					<?php
-		do_settings_sections( 'github-updater' );
-?>
-				</form>
-			</div>
-
+            <h1><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h1>
+            <?php $this->validate(); ?>
+            <?php $this->private_description(); ?>
+            <form method="post" id="ghupdate" action="options.php">
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <?php $this->fields(); ?>
+                    <tbody>                        
+                </table>
+                <?php $this->submit_button( array( 'label' => 'Authorize with GitHub' ) ); ?>
+			</form>
 		</div>
 		<?php
 	}	
@@ -149,8 +144,6 @@ class WPGitHubUpdaterSetup {
 	 * @return none
 	 */
 	public function fields() {
-		$this->private_description();
-
 		$this->input_field(
 			array(
     			'label' => 'Client ID',
@@ -175,13 +168,6 @@ class WPGitHubUpdaterSetup {
 				'id' => 'access_token',
 			)
 		);
-
-		$this->submit_button(
-			array(
-    			'label' => 'Authorize with GitHub',
-			)
-		);
-
 	}
 
 	/**
@@ -214,9 +200,11 @@ class WPGitHubUpdaterSetup {
 		$gh = get_option( 'ghupdate' );
 		$value = $gh[$id];
         ?>
-        <label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label>
-		<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
-		<?php echo $description ?>
+        <tr>
+            <th scope="row"><label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label></th>
+            <td><input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" /></td>
+            <p class="description" id="description"><?php echo $description; ?></p></td>
+        </tr>
 		<?php
 	}
 
