@@ -98,10 +98,7 @@ class WPGitHubUpdaterSetup {
 		$this->plugin_file = __FILE__;
 		$this->plugin_basename = plugin_basename( $this->plugin_file );
 
-		//add_action( 'admin_init', array( $this, 'settings_fields' ) );
 		add_action( 'admin_menu', array( $this, 'register_menu_page' ) );
-		add_action( 'network_admin_menu', array( $this, 'add_page' ) );
-
 		add_action( 'wp_ajax_set_github_oauth_key', array( $this, 'ajax_set_github_oauth_key' ) );
 	}
 
@@ -127,6 +124,10 @@ class WPGitHubUpdaterSetup {
             <?php $this->validate(); ?>
             <?php $this->private_description(); ?>
             <form method="post" id="ghupdate" action="<?php echo admin_url('plugins.php?page=github-updater'); ?>">
+                <input type="hidden" name="option_page" value="ghupdate">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="settings_updated" value="true">
+                <?php wp_nonce_field('ghupdate'); ?>
                 <table class="form-table" role="presentation">
                     <tbody>
                         <?php $this->fields(); ?>
@@ -297,12 +298,12 @@ echo '</pre>';
 	}
 
 	public function maybe_authorize() {
-echo 'maybe_authorize';    	
-print_r($_GET);
+    	$authorize = isset($_GET['authorize']) ? $_GET['authorize'] : '';
+        $settings_updated = isset($_POST['settings_updated']) ? $_POST['settings_updated'] : 'false';
 
 		$gh = get_option( 'ghupdate' );
-print_r($gh);		
-		if ( 'false' == $_GET['authorize'] || 'true' != $_GET['settings-updated'] || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
+		
+		if ( 'false' == $authorize || 'true' != $settings_updated || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
 			return;
 		}
 
