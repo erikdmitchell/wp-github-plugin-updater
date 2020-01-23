@@ -75,7 +75,7 @@ class WP_GitHub_Updater {
 		);
 
 		$this->config = wp_parse_args( $config, $defaults );
-
+//print_r($this->config);
 		// if the minimum config isn't set, issue a warning and bail
 		if ( ! $this->has_minimum_config() ) {
 			$message = 'The GitHub Updater was initialized without the minimum required configuration, please check the config in your plugin. The following params are missing: ';
