@@ -126,7 +126,7 @@ class WPGitHubUpdaterSetup {
             <h1><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h1>
             <?php $this->validate(); ?>
             <?php $this->private_description(); ?>
-            <form method="post" id="ghupdate" action="options.php">
+            <form method="post" id="ghupdate" action="<?php echo admin_url('plugins.php?page=github-updater'); ?>">
                 <table class="form-table" role="presentation">
                     <tbody>
                         <?php $this->fields(); ?>
@@ -250,6 +250,7 @@ class WPGitHubUpdaterSetup {
 	}
 
 	public function validate( $input = '' ) { 
+echo "validate";    	
     	if (!isset($_GET['update'])) {
         	return;
     	}  	
@@ -296,8 +297,11 @@ echo '</pre>';
 	}
 
 	public function maybe_authorize() {
+echo 'maybe_authorize';    	
+print_r($_GET);
+
 		$gh = get_option( 'ghupdate' );
-		
+print_r($gh);		
 		if ( 'false' == $_GET['authorize'] || 'true' != $_GET['settings-updated'] || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
 			return;
 		}
@@ -313,13 +317,13 @@ echo '</pre>';
 			'redirect_uri' => $redirect_uri,
 		);
 		$query = add_query_arg( $query_args, $query );
-/*
+
 echo '<pre>';		
 print_r($query_args);
 print_r($query);
 echo '</pre>';
 exit;	
-*/	
+	
 		wp_redirect( $query );
 
 		exit;
