@@ -225,24 +225,33 @@ class WPGitHubUpdaterSetup {
 	 * @return void
 	 */
 	public function token_field( $args = array() ) {
+echo "token field";    	
 		extract( $args );
 		$gh = get_option( 'ghupdate' );
 print_r($gh);	
-		$value = $gh[$id];
+echo($id);
         ?>
-        <label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label>
+        <tr>
+            <th scope="row"><label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label></th>
+            <?php
+    		if ( empty( $value ) ) {
+                ?>
+    			<td>
+        			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="hidden" />
+                    <p>Input Client ID and Client Secret, then <a href="javascript:document.forms['ghupdate'].submit();">Authorize with GitHub</a>.</p>
+    			</td>
+    			<?php
+    		} else {
+                ?>
+                <td>
+        			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
+                    <p>Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code></p>
+                </td>
+    			<?php
+    		}
+    		?>
+        </tr>
         <?php
-		if ( empty( $value ) ) {
-            ?>
-			<p>Input Client ID and Client Secret, then <a href="javascript:document.forms['ghupdate'].submit();">Authorize with GitHub</a>.</p>
-			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="hidden" />
-			<?php
-		} else {
-            ?>
-			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
-			<p>Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code>
-			<?php
-		}
 	}
 
 	/**
@@ -349,7 +358,8 @@ echo '</pre>';
 			$query = add_query_arg( $query_args, $query );
 			$response = wp_remote_get( $query, array( 'sslverify' => false ) );
 			parse_str( $response['body'] ); // populates $access_token, $token_type
-
+print_r($response);
+exit;
 			if ( !empty( $access_token ) ) {
 				$gh['access_token'] = $access_token;
 				update_option( 'ghupdate', $gh );
