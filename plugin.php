@@ -77,6 +77,13 @@ class WPGitHubUpdaterSetup {
 	 * @var string
 	 */
 	var $plugin_file;
+	
+	/**
+	 * Full url to the main plugin file
+	 *
+	 * @var string
+	 */
+	var $plugin_url;	
 
 	/**
 	 * Path to the main plugin file relative to WP_CONTENT_DIR/plugins
@@ -97,8 +104,10 @@ class WPGitHubUpdaterSetup {
 		// Full path and plugin basename of the main plugin file
 		$this->plugin_file = __FILE__;
 		$this->plugin_basename = plugin_basename( $this->plugin_file );
+		$this->plugin_url = admin_url('plugins.php?page=github-updater');
 
 		add_action( 'admin_menu', array( $this, 'register_menu_page' ) );
+		add_action( 'admin_init', array( $this, 'maybe_authorize' ) );
 		add_action( 'wp_ajax_set_github_oauth_key', array( $this, 'ajax_set_github_oauth_key' ) );
 	}
 
@@ -116,14 +125,13 @@ class WPGitHubUpdaterSetup {
 	 *
 	 * @return none
 	 */
-	function admin_page() {
-		$this->maybe_authorize();		
+	function admin_page() {		
         ?>
 		<div class="wrap ghupdate-admin">
             <h1><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h1>
             <?php $this->validate(); ?>
             <?php $this->private_description(); ?>
-            <form method="post" id="ghupdate" action="<?php echo admin_url('plugins.php?page=github-updater'); ?>">
+            <form method="post" id="ghupdate" action="">
                 <input type="hidden" name="option_page" value="ghupdate">
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="settings_updated" value="true">
@@ -219,6 +227,7 @@ class WPGitHubUpdaterSetup {
 	public function token_field( $args = array() ) {
 		extract( $args );
 		$gh = get_option( 'ghupdate' );
+print_r($gh);	
 		$value = $gh[$id];
         ?>
         <label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label>
@@ -301,33 +310,25 @@ echo '</pre>';
     	$authorize = isset($_GET['authorize']) ? $_GET['authorize'] : '';
         $settings_updated = isset($_POST['settings_updated']) ? $_POST['settings_updated'] : 'false';
 
-		$gh = get_option( 'ghupdate' );
+		$gh = get_option( 'ghupdate' );	
 		
 		if ( 'false' == $authorize || 'true' != $settings_updated || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
 			return;
 		}
 
-		$redirect_uri = urlencode( admin_url( 'admin-ajax.php?action=set_github_oauth_key' ) );
-
 		// Send user to GitHub for account authorization
-
 		$query = 'https://github.com/login/oauth/authorize';
 		$query_args = array(
 			'scope' => 'repo',
 			'client_id' => $gh['client_id'],
-			'redirect_uri' => $redirect_uri,
+			'action' => 'set_github_oauth_key',
+			'redirect_uri' => $this->plugin_url,
 		);
 		$query = add_query_arg( $query_args, $query );
 
-echo '<pre>';		
-print_r($query_args);
-print_r($query);
-echo '</pre>';
-exit;	
-	
 		wp_redirect( $query );
 
-		exit;
+		exit();
 
 	}
 
