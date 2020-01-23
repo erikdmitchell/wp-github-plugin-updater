@@ -324,14 +324,15 @@ echo '</pre>';
 		if ( 'false' == $authorize || 'true' != $settings_updated || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
 			return;
 		}
+		
+		$redirect_uri = urlencode( admin_url( 'admin-ajax.php?action=set_github_oauth_key' ) );
 
 		// Send user to GitHub for account authorization
 		$query = 'https://github.com/login/oauth/authorize';
 		$query_args = array(
 			'scope' => 'repo',
 			'client_id' => $gh['client_id'],
-			'action' => 'set_github_oauth_key',
-			'redirect_uri' => $this->plugin_url,
+			'redirect_uri' => $redirect_uri,
 		);
 		$query = add_query_arg( $query_args, $query );
 
@@ -358,8 +359,7 @@ echo '</pre>';
 			$query = add_query_arg( $query_args, $query );
 			$response = wp_remote_get( $query, array( 'sslverify' => false ) );
 			parse_str( $response['body'] ); // populates $access_token, $token_type
-print_r($response);
-exit;
+
 			if ( !empty( $access_token ) ) {
 				$gh['access_token'] = $access_token;
 				update_option( 'ghupdate', $gh );
