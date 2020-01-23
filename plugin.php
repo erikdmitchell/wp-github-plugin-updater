@@ -224,12 +224,10 @@ class WPGitHubUpdaterSetup {
 	 * @param array $args (default: array())
 	 * @return void
 	 */
-	public function token_field( $args = array() ) {
-echo "token field";    	
+	public function token_field( $args = array() ) {   	
 		extract( $args );
 		$gh = get_option( 'ghupdate' );
-print_r($gh);	
-echo($id);
+		$value = $gh[$id];
         ?>
         <tr>
             <th scope="row"><label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label></th>
