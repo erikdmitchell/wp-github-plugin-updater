@@ -243,7 +243,7 @@ class WPGitHubUpdaterSetup {
                 ?>
                 <td>
         			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
-                    <p>Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code></p>
+                    <p class="description">Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code></p>
                 </td>
     			<?php
     		}
