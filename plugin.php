@@ -3,9 +3,9 @@
 Plugin Name: WP GitHub Plugin Updater Test
 Plugin URI: https://github.com/jkudish/WordPress-GitHub-Plugin-Updater
 Description: Semi-automated test for the GitHub Plugin Updater
-Version: 0.1
-Author: Joachim Kudish
-Author URI: http://jkudish.com/
+Version: 0.1.1
+Author: Erik Mitchell
+Author URI: http://erikmitchell.net/
 License: GPLv2
 */
 
@@ -77,6 +77,13 @@ class WPGitHubUpdaterSetup {
 	 * @var string
 	 */
 	var $plugin_file;
+	
+	/**
+	 * Full url to the main plugin file
+	 *
+	 * @var string
+	 */
+	var $plugin_url;	
 
 	/**
 	 * Path to the main plugin file relative to WP_CONTENT_DIR/plugins
@@ -97,11 +104,10 @@ class WPGitHubUpdaterSetup {
 		// Full path and plugin basename of the main plugin file
 		$this->plugin_file = __FILE__;
 		$this->plugin_basename = plugin_basename( $this->plugin_file );
+		$this->plugin_url = admin_url('plugins.php?page=github-updater');
 
-		add_action( 'admin_init', array( $this, 'settings_fields' ) );
-		add_action( 'admin_menu', array( $this, 'add_page' ) );
-		add_action( 'network_admin_menu', array( $this, 'add_page' ) );
-
+		add_action( 'admin_menu', array( $this, 'register_menu_page' ) );
+		add_action( 'admin_init', array( $this, 'maybe_authorize' ) );
 		add_action( 'wp_ajax_set_github_oauth_key', array( $this, 'ajax_set_github_oauth_key' ) );
 	}
 
@@ -110,57 +116,77 @@ class WPGitHubUpdaterSetup {
 	 *
 	 * @return none
 	 */
-	function add_page() {
-		if ( current_user_can ( 'manage_options' ) ) {
-			$this->options_page_hookname = add_plugins_page ( __( 'GitHub Updates', 'github_plugin_updater' ), __( 'GitHub Updates', 'github_plugin_updater' ), 'manage_options', 'github-updater', array( $this, 'admin_page' ) );
-			add_filter( "network_admin_plugin_action_links_{$this->plugin_basename}", array( $this, 'filter_plugin_actions' ) );
-			add_filter( "plugin_action_links_{$this->plugin_basename}", array( $this, 'filter_plugin_actions' ) );
-		}
+	function register_menu_page() {
+    	add_plugins_page('GitHub Updates', 'GitHub Updates', 'manage_options', 'github-updater', array($this, 'admin_page'));
 	}
+	
+	/**
+	 * Output the setup page
+	 *
+	 * @return none
+	 */
+	function admin_page() {		
+        ?>
+		<div class="wrap ghupdate-admin">
+            <h1><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h1>
+            <?php $this->validate(); ?>
+            <?php $this->private_description(); ?>
+            <form method="post" id="ghupdate" action="">
+                <input type="hidden" name="option_page" value="ghupdate">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="settings_updated" value="true">
+                <?php wp_nonce_field('ghupdate'); ?>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <?php $this->fields(); ?>
+                    <tbody>                        
+                </table>
+                <?php $this->submit_button( array( 'label' => 'Authorize with GitHub' ) ); ?>
+			</form>
+		</div>
+		<?php
+	}	
 
 	/**
 	 * Add fields and groups to the settings page
 	 *
 	 * @return none
 	 */
-	public function settings_fields() {
-echo "settings_fields";    	
-		register_setting( 'ghupdate', 'ghupdate', array( $this, 'settings_validate' ) );
-
-		// Sections: ID, Label, Description callback, Page ID
-		add_settings_section( 'ghupdate_private', 'Private Repositories', array( $this, 'private_description' ), 'github-updater' );
-
-		// Private Repo Fields: ID, Label, Display callback, Menu page slug, Form section, callback arguements
-		add_settings_field(
-			'client_id', 'Client ID', array( $this, 'input_field' ), 'github-updater', 'ghupdate_private',
+	public function fields() {
+		$this->input_field(
 			array(
+    			'label' => 'Client ID',
 				'id' => 'client_id',
 				'type' => 'text',
 				'description' => '',
 			)
 		);
-		add_settings_field(
-			'client_secret', 'Client Secret', array( $this, 'input_field' ), 'github-updater', 'ghupdate_private',
+
+		$this->input_field(
 			array(
+    			'label' => 'Client Secret',
 				'id' => 'client_secret',
 				'type' => 'text',
 				'description' => '',
 			)
 		);
-		add_settings_field(
-			'access_token', 'Access Token', array( $this, 'token_field' ), 'github-updater', 'ghupdate_private',
+
+		$this->token_field(
 			array(
+    			'label' => 'Access Token',
 				'id' => 'access_token',
 			)
 		);
-		add_settings_field(
-			'gh_authorize', '<p class="submit"><input class="button-primary" type="submit" value="'.__( 'Authorize with GitHub', 'github_plugin_updater' ).'" /></p>', null, 'github-updater', 'ghupdate_private', null
-		);
-
 	}
 
+	/**
+	 * Private description text.
+	 * 
+	 * @access public
+	 * @return void
+	 */
 	public function private_description() {
-?>
+        ?>
 		<p>Updating from private repositories requires a one-time application setup and authorization. These steps will not need to be repeated for other sites once you receive your access token.</p>
 		<p>Follow these steps:</p>
 		<ol>
@@ -171,59 +197,108 @@ echo "settings_fields";
 		<?php
 	}
 
-	public function input_field( $args ) {
+	/**
+	 * Generates an input field.
+	 * 
+	 * @access public
+	 * @param array $args (default: array())
+	 * @return void
+	 */
+	public function input_field( $args = array() ) {   	
 		extract( $args );
 		$gh = get_option( 'ghupdate' );
 		$value = $gh[$id];
-?>
-		<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
-		<?php echo $description ?>
+        ?>
+        <tr>
+            <th scope="row"><label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label></th>
+            <td><input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" /></td>
+            <p class="description" id="description"><?php echo $description; ?></p></td>
+        </tr>
 		<?php
 	}
 
-	public function token_field( $args ) {
+	/**
+	 * Generates our token field.
+	 * 
+	 * @access public
+	 * @param array $args (default: array())
+	 * @return void
+	 */
+	public function token_field( $args = array() ) {   	
 		extract( $args );
 		$gh = get_option( 'ghupdate' );
 		$value = $gh[$id];
+        ?>
+        <tr>
+            <th scope="row"><label for="<?php esc_attr_e( $id ); ?>"><?php esc_attr_e( $label ); ?></label></th>
+            <?php
+    		if ( empty( $value ) ) {
+                ?>
+    			<td>
+        			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="hidden" />
+                    <p>Input Client ID and Client Secret, then <a href="javascript:document.forms['ghupdate'].submit();">Authorize with GitHub</a>.</p>
+    			</td>
+    			<?php
+    		} else {
+                ?>
+                <td>
+        			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
+                    <p class="description">Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code></p>
+                </td>
+    			<?php
+    		}
+    		?>
+        </tr>
+        <?php
+	}
 
-		if ( empty( $value ) ) {
-?>
-			<p>Input Client ID and Client Secret, then <a href="javascript:document.forms['ghupdate'].submit();">Authorize with GitHub</a>.</p>
-			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="hidden" />
-			<?php
-		}else {
-?>
-			<input value="<?php esc_attr_e( $value )?>" name="<?php esc_attr_e( $id ) ?>" id="<?php esc_attr_e( $id ) ?>" type="text" class="regular-text" />
-			<p>Add to the <strong>$config</strong> array: <code>'access_token' => '<?php echo $value ?>',</code>
-			<?php
-		}
-?>
+	/**
+	 * Generate submit button.
+	 * 
+	 * @access public
+	 * @param array $args (default: array())
+	 * @return void
+	 */
+	public function submit_button( $args = array() ) {   	  	
+		extract( $args );
+        ?>
+        <p class="submit"><input type="submit" class="button button-primary" value="<?php esc_attr_e( $label ); ?>"></p>
 		<?php
 	}
 
-	public function settings_validate( $input ) {
-echo "settings_validate";    	
+	public function validate( $input = '' ) { 
+echo "validate";    	
+    	if (!isset($_GET['update'])) {
+        	return;
+    	}  	
+    	
 		if ( empty( $input ) ) {
 			$input = $_POST;
 		}
+		
 		if ( !is_array( $input ) ) {
 			return false;
 		}
-		$gh = get_option( 'ghupdate' );
+		
+		//$gh = get_option( 'ghupdate' );
 		$valid = array();
-
+echo '<pre>';
+print_r($input);
 		$valid['client_id']     = strip_tags( $input['client_id'] );
 		$valid['client_secret'] = strip_tags( $input['client_secret'] );
 		$valid['access_token']  = strip_tags( $input['access_token'] );
 
 		if ( empty( $valid['client_id'] ) ) {
+    		echo 'Please input a Client ID before authorizing.';
 			add_settings_error( 'client_id', 'no-client-id', __( 'Please input a Client ID before authorizing.', 'github_plugin_updater' ), 'error' );
 		}
 		if ( empty( $valid['client_secret'] ) ) {
+    		echo 'Please input a Client Secret before authorizing.';
 			add_settings_error( 'client_secret', 'no-client-secret', __( 'Please input a Client Secret before authorizing.', 'github_plugin_updater' ), 'error' );
 		}
-
-		return $valid;
+print_r($valid);
+echo '</pre>';
+		//return $valid;
 	}
 
 	/**
@@ -238,45 +313,19 @@ echo "settings_validate";
 		return $links;
 	}
 
-	/**
-	 * Output the setup page
-	 *
-	 * @return none
-	 */
-	function admin_page() {
-		$this->maybe_authorize();		
-?>
-		<div class="wrap ghupdate-admin">
-
-			<div class="head-wrap">
-				<h2><?php _e( 'Setup GitHub Updates' , 'github_plugin_updater' ); ?></h2>
-			</div>
-
-			<div class="postbox-container primary">
-				<form method="post" id="ghupdate" action="options.php">
-					<?php
-		settings_errors();
-		settings_fields( 'ghupdate' ); // includes nonce
-		do_settings_sections( 'github-updater' );
-?>
-				</form>
-			</div>
-
-		</div>
-		<?php
-	}
-
 	public function maybe_authorize() {
-		$gh = get_option( 'ghupdate' );
+    	$authorize = isset($_GET['authorize']) ? $_GET['authorize'] : '';
+        $settings_updated = isset($_POST['settings_updated']) ? $_POST['settings_updated'] : 'false';
+
+		$gh = get_option( 'ghupdate' );	
 		
-		if ( 'false' == $_GET['authorize'] || 'true' != $_GET['settings-updated'] || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
+		if ( 'false' == $authorize || 'true' != $settings_updated || empty( $gh['client_id'] ) || empty( $gh['client_secret'] ) ) {
 			return;
 		}
-
+		
 		$redirect_uri = urlencode( admin_url( 'admin-ajax.php?action=set_github_oauth_key' ) );
 
 		// Send user to GitHub for account authorization
-
 		$query = 'https://github.com/login/oauth/authorize';
 		$query_args = array(
 			'scope' => 'repo',
@@ -284,16 +333,10 @@ echo "settings_validate";
 			'redirect_uri' => $redirect_uri,
 		);
 		$query = add_query_arg( $query_args, $query );
-/*
-echo '<pre>';		
-print_r($query_args);
-print_r($query);
-echo '</pre>';
-exit;	
-*/	
+
 		wp_redirect( $query );
 
-		exit;
+		exit();
 
 	}
 
