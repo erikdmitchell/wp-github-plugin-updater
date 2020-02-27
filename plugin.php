@@ -266,8 +266,7 @@ class WPGitHubUpdaterSetup {
 		<?php
 	}
 
-	public function validate( $input = '' ) { 
-echo "validate";    	
+	public function validate( $input = '' ) {	
     	if (!isset($_GET['update'])) {
         	return;
     	}  	
@@ -280,10 +279,8 @@ echo "validate";
 			return false;
 		}
 		
-		//$gh = get_option( 'ghupdate' );
+		$gh = get_option( 'ghupdate' );
 		$valid = array();
-echo '<pre>';
-print_r($input);
 		$valid['client_id']     = strip_tags( $input['client_id'] );
 		$valid['client_secret'] = strip_tags( $input['client_secret'] );
 		$valid['access_token']  = strip_tags( $input['access_token'] );
@@ -296,9 +293,8 @@ print_r($input);
     		echo 'Please input a Client Secret before authorizing.';
 			add_settings_error( 'client_secret', 'no-client-secret', __( 'Please input a Client Secret before authorizing.', 'github_plugin_updater' ), 'error' );
 		}
-print_r($valid);
-echo '</pre>';
-		//return $valid;
+
+		return $valid;
 	}
 
 	/**
