@@ -4,7 +4,7 @@ This class is meant to be used with your GitHub hosted WordPress plugins. The pu
 
 Not all plugins can or should be hosted on the WordPress.org plugin repository, or you may chose to host it on GitHub only.
 
-This class was originally developed by [Joachim Kudish](https://github.com/jkudish), but because he hasn't had a chance to update it in a while, we stepped in. We are using this class in a couple of our own plugins (dogfooding!) and will continue to develop it as we go.
+This class was originally developed by [Joachim Kudish](https://github.com/jkudish), but because he hasn't had a chance to update it in a while, we stepped in. We are using this class in a couple of our own plugins and will continue to develop it as we go.
 
 ## Usage instructions
 * The class should be included somewhere in your plugin. You will need to require the file (example: `include_once('updater.php');`).
@@ -23,7 +23,7 @@ This class was originally developed by [Joachim Kudish](https://github.com/jkudi
 			'requires' => '3.0', // which version of WordPress does your plugin require?
 			'tested' => '3.3', // which version of WordPress is your plugin tested up to?
 			'readme' => 'README.md', // which file to use as the readme for the version number
-			'access_token' => '', // Access private repositories by authorizing under Appearance > GitHub Updates when this example plugin is installed
+			'access_token' => '', // Access private repositories by authorizing under Plugins > GitHub Updates when this example plugin is installed
 		);
 		new WP_GitHub_Updater($config);
 	}
